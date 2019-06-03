@@ -33,12 +33,17 @@ func (m *Plugin) GenerateCode(data *codegen.Data) error {
 	}
 	filename := data.Config.Resolver.Filename
 
+	options := templates.Options{
+		PackageName: data.Config.Resolver.Package,
+		Filename:    data.Config.Resolver.Filename,
+		Data:        resolverBuild,
+	}
+	pkg := data.Config.AutoGenerator.ResolverFuncBody.InvokePackage
+	if len(pkg) > 0 {
+		options.ExtImports = []string{pkg}
+	}
 	if _, err := os.Stat(filename); os.IsNotExist(errors.Cause(err)) {
-		return templates.Render(templates.Options{
-			PackageName: data.Config.Resolver.Package,
-			Filename:    data.Config.Resolver.Filename,
-			Data:        resolverBuild,
-		})
+		return templates.Render(options)
 	}
 
 	log.Printf("Skipped resolver: %s already exists\n", filename)

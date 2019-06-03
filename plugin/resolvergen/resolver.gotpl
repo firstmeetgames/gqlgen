@@ -32,7 +32,15 @@ type {{.ResolverType}} struct {}
 		{{ range $field := $object.Fields -}}
 			{{- if $field.IsResolver -}}
 			func (r *{{lcFirst $object.Name}}Resolver) {{$field.GoFieldName}}{{ $field.ShortResolverDeclaration }} {
-				panic("not implemented")
+				{{- with $.Config.AutoResolverShortPackage -}}
+					return {{$.Config.AutoResolverShortPackage}}.{{$field.AutoResolverInvoke}}
+				{{- else }}
+					{{- with $.Config.AutoGenerator.ResolverFuncBody.Expression}}
+						{{$.Config.AutoGenerator.ResolverFuncBody.Expression}}
+					{{- else}}
+						panic("not implemented")
+					{{ end -}}
+				{{ end -}}
 			}
 			{{ end -}}
 		{{ end -}}

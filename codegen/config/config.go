@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/vektah/gqlparser"
 	"github.com/vektah/gqlparser/ast"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -23,6 +23,7 @@ type Config struct {
 	Resolver       PackageConfig `yaml:"resolver,omitempty"`
 	Models         TypeMap       `yaml:"models,omitempty"`
 	StructTag      string        `yaml:"struct_tag,omitempty"`
+	AutoGenerator  AutoGenerator `yaml:"auto,omitempty"`
 }
 
 var cfgFilenames = []string{".gqlgen.yml", "gqlgen.yml", "gqlgen.yaml"}
@@ -87,6 +88,16 @@ type PackageConfig struct {
 	Filename string `yaml:"filename,omitempty"`
 	Package  string `yaml:"package,omitempty"`
 	Type     string `yaml:"type,omitempty"`
+}
+
+type AutoGenerator struct {
+	ResolverFuncBody     ResolverFuncBody `yaml:"body,omitempty"`
+	StructFieldsResolver bool             `yaml:"resolver,omitempty"`
+}
+
+type ResolverFuncBody struct {
+	InvokePackage string `yaml:"package,omitempty"`
+	Expression    string `yaml:"expression,omitempty"`
 }
 
 type TypeMapEntry struct {
@@ -208,6 +219,16 @@ func (c *Config) Check() error {
 	}
 
 	return c.normalize()
+}
+
+func (c *Config) AutoResolverShortPackage() string {
+	res := ""
+	p := c.AutoGenerator.ResolverFuncBody.InvokePackage
+	if len(p) > 0 {
+		arr := strings.Split(p, "/")
+		res = arr[len(arr)-1]
+	}
+	return res
 }
 
 func stripPath(path string) string {

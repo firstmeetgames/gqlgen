@@ -41,8 +41,9 @@ type Options struct {
 	RegionTags      bool
 	GeneratedHeader bool
 	// Data will be passed to the template execution.
-	Data  interface{}
-	Funcs template.FuncMap
+	Data       interface{}
+	Funcs      template.FuncMap
+	ExtImports []string
 }
 
 // Render renders a gql plugin template from the given Options. Render is an
@@ -135,7 +136,14 @@ func Render(cfg Options) error {
 	result.WriteString(cfg.PackageName)
 	result.WriteString("\n\n")
 	result.WriteString("import (\n")
-	result.WriteString(CurrentImports.String())
+	res := CurrentImports.String()
+	for _, imp := range cfg.ExtImports {
+		if !strings.HasPrefix(imp, "\"") || !strings.HasSuffix(imp, "\"") {
+			imp = "\"" + imp + "\""
+		}
+		res += "\n" + imp
+	}
+	result.WriteString(res)
 	result.WriteString(")\n")
 	_, err := buf.WriteTo(&result)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/99designs/gqlgen/codegen/config"
 	"github.com/99designs/gqlgen/codegen/templates"
+	"github.com/99designs/gqlgen/internal/code"
 	"github.com/pkg/errors"
 	"github.com/vektah/gqlparser/ast"
 )
@@ -73,6 +74,44 @@ func (b *builder) buildField(obj *Object, field *ast.FieldDefinition) (*Field, e
 	return &f, nil
 }
 
+func (f *Field) isResolver(b *builder) (isResolver bool) {
+	if !b.Config.AutoGenerator.StructFieldsResolver {
+		return
+	}
+	for _, model := range b.Config.Models[f.Type.Name()].Model {
+		pkgName, typeName := code.PkgAndType(model)
+		// exclude fields that the gqlgen automatically generates
+		/*if !strings.HasPrefix(pkgName, "github.com/99designs/gqlgen") {
+			continue
+		}*/
+		if strings.HasPrefix(f.Name, "__") {
+			continue
+		}
+		def := b.Schema.Types[f.Type.Name()]
+		// exclude fields of input type
+		if def.Kind == ast.InputObject {
+			continue
+		}
+		o, err := b.Binder.FindObject(pkgName, typeName)
+		if err != nil {
+			continue
+		}
+
+		if _, isStruct := o.Type().Underlying().(*types.Struct); isStruct {
+			fmt.Println(pkgName, typeName)
+			ref := &config.TypeReference{
+				Definition: def,
+				GQL:        f.Type,
+				GO:         o.Type(),
+			}
+			f.TypeReference = ref
+			isResolver = true
+			return
+		}
+	}
+	return
+}
+
 func (b *builder) bindField(obj *Object, f *Field) error {
 	defer func() {
 		if f.TypeReference == nil {
@@ -99,6 +138,9 @@ func (b *builder) bindField(obj *Object, f *Field) error {
 		f.IsResolver = true
 		return nil
 	case b.Config.Models[obj.Name].Fields[f.Name].Resolver:
+		f.IsResolver = true
+		return nil
+	case f.isResolver(b):
 		f.IsResolver = true
 		return nil
 	case obj.Type == config.MapType:
@@ -350,6 +392,18 @@ func (f *Field) ShortResolverDeclaration() string {
 	}
 
 	res += fmt.Sprintf(") (%s, error)", result)
+	return res
+}
+
+func (f *Field) AutoResolverInvoke() string {
+	res := f.GoFieldName + "(ctx"
+	if !f.Object.Root {
+		res += ", obj "
+	}
+	for _, arg := range f.Args {
+		res += fmt.Sprintf(", %s", arg.VarName)
+	}
+	res += ")"
 	return res
 }
 
