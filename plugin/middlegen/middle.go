@@ -21,18 +21,18 @@ func (m *Plugin) Name() string {
 	return "middlegen"
 }
 func (m *Plugin) GenerateCode(data *codegen.Data) error {
-	if !data.Config.AutoGenerator.Middleware.IsDefined() {
+	if !data.Config.Middleware.IsDefined() {
 		return nil
 	}
 
 	middleBuild := &MiddleBuild{
 		Data:         data,
-		PackageName:  data.Config.AutoGenerator.Middleware.Package,
+		PackageName:  data.Config.Middleware.Package,
 	}
-	filename := data.Config.AutoGenerator.Middleware.Filename
+	filename := data.Config.Middleware.Filename
 
 	options := templates.Options{
-		PackageName: data.Config.AutoGenerator.Middleware.Package,
+		PackageName: data.Config.Middleware.Package,
 		Filename:    filename,
 		Data:        middleBuild,
 	}

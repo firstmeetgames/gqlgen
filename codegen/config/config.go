@@ -23,7 +23,8 @@ type Config struct {
 	Resolver       PackageConfig `yaml:"resolver,omitempty"`
 	Models         TypeMap       `yaml:"models,omitempty"`
 	StructTag      string        `yaml:"struct_tag,omitempty"`
-	AutoGenerator  AutoGenerator `yaml:"auto,omitempty"`
+	Middleware     PackageConfig `yaml:"middle,omitempty"`
+	AutoResolver   bool          `yaml:"auto_resolver,omitempty"`
 }
 
 var cfgFilenames = []string{".gqlgen.yml", "gqlgen.yml", "gqlgen.yaml"}
@@ -88,12 +89,6 @@ type PackageConfig struct {
 	Filename string `yaml:"filename,omitempty"`
 	Package  string `yaml:"package,omitempty"`
 	Type     string `yaml:"type,omitempty"`
-}
-
-type AutoGenerator struct {
-	Middleware               PackageConfig `yaml:"middle,omitempty"`
-	StructFieldsAutoResolver bool          `yaml:"resolver,omitempty"`
-	ResolverFuncExpression   string        `yaml:"expression,omitempty"`
 }
 
 type TypeMapEntry struct {
@@ -193,8 +188,8 @@ func (c *Config) Check() error {
 		}
 	}
 
-	if c.AutoGenerator.Middleware.IsDefined() {
-		if err := c.AutoGenerator.Middleware.Check(); err != nil {
+	if c.Middleware.IsDefined() {
+		if err := c.Middleware.Check(); err != nil {
 			return errors.Wrap(err, "config.auto.middle")
 		}
 	}
@@ -205,7 +200,7 @@ func (c *Config) Check() error {
 		c.Model,
 		c.Exec,
 		c.Resolver,
-		c.AutoGenerator.Middleware,
+		c.Middleware,
 	}
 	filesMap := make(map[string]bool)
 	pkgConfigsByDir := make(map[string]PackageConfig)
@@ -337,8 +332,8 @@ func (c *Config) normalize() error {
 		}
 	}
 
-	if c.AutoGenerator.Middleware.IsDefined() {
-		if err := c.AutoGenerator.Middleware.normalize(); err != nil {
+	if c.Middleware.IsDefined() {
+		if err := c.Middleware.normalize(); err != nil {
 			return errors.Wrap(err, "middle")
 		}
 	}

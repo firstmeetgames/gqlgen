@@ -31,14 +31,10 @@ type {{.ResolverType}} struct {}
 		{{ range $field := $object.Fields -}}
 			{{- if $field.IsResolver -}}
 			func (r *{{lcFirst $object.Name}}Resolver) {{$field.GoFieldName}}{{ $field.ShortResolverDeclaration }} {
-				{{- with $.Config.AutoGenerator.Middleware.Filename -}}
-					return {{$.Config.AutoGenerator.Middleware.Package}}.{{$field.AutoResolverInvoke}}
+				{{- with $.Config.Middleware.Filename -}}
+					return {{$.Config.Middleware.Package}}.{{$field.AutoResolverInvoke}}
 				{{- else }}
-					{{- with $.Config.AutoGenerator.ResolverFuncExpression -}}
-						{{$.Config.AutoGenerator.ResolverFuncExpression}}
-					{{- else}}
-						panic("not implemented")
-					{{ end -}}
+					panic("not implemented")
 				{{ end -}}
 			}
 			{{ end -}}

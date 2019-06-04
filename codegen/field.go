@@ -74,8 +74,8 @@ func (b *builder) buildField(obj *Object, field *ast.FieldDefinition) (*Field, e
 	return &f, nil
 }
 
-func (f *Field) isResolver(b *builder) (isResolver bool) {
-	if !b.Config.AutoGenerator.StructFieldsAutoResolver {
+func (f *Field) isAutoResolver(b *builder) (isResolver bool) {
+	if !b.Config.AutoResolver {
 		return
 	}
 	for _, model := range b.Config.Models[f.Type.Name()].Model {
@@ -140,7 +140,7 @@ func (b *builder) bindField(obj *Object, f *Field) error {
 	case b.Config.Models[obj.Name].Fields[f.Name].Resolver:
 		f.IsResolver = true
 		return nil
-	case f.isResolver(b):
+	case f.isAutoResolver(b):
 		f.IsResolver = true
 		return nil
 	case obj.Type == config.MapType:

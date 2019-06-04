@@ -34,7 +34,7 @@ func (m *Plugin) GenerateCode(data *codegen.Data) error {
 		Filename:    data.Config.Resolver.Filename,
 		Data:        resolverBuild,
 	}
-	pkg := data.Config.AutoGenerator.Middleware.ImportPath()
+	pkg := data.Config.Middleware.ImportPath()
 	if len(pkg) > 0 {
 		options.ExtImports = []string{pkg}
 	}
