@@ -91,13 +91,9 @@ type PackageConfig struct {
 }
 
 type AutoGenerator struct {
-	ResolverFuncBody     ResolverFuncBody `yaml:"body,omitempty"`
-	StructFieldsResolver bool             `yaml:"resolver,omitempty"`
-}
-
-type ResolverFuncBody struct {
-	InvokePackage string `yaml:"package,omitempty"`
-	Expression    string `yaml:"expression,omitempty"`
+	Middleware               PackageConfig `yaml:"middle,omitempty"`
+	StructFieldsAutoResolver bool          `yaml:"resolver,omitempty"`
+	ResolverFuncExpression   string        `yaml:"expression,omitempty"`
 }
 
 type TypeMapEntry struct {
@@ -190,9 +186,16 @@ func (c *Config) Check() error {
 	if err := c.Model.Check(); err != nil {
 		return errors.Wrap(err, "config.model")
 	}
+
 	if c.Resolver.IsDefined() {
 		if err := c.Resolver.Check(); err != nil {
 			return errors.Wrap(err, "config.resolver")
+		}
+	}
+
+	if c.AutoGenerator.Middleware.IsDefined() {
+		if err := c.AutoGenerator.Middleware.Check(); err != nil {
+			return errors.Wrap(err, "config.auto.middle")
 		}
 	}
 
@@ -202,6 +205,7 @@ func (c *Config) Check() error {
 		c.Model,
 		c.Exec,
 		c.Resolver,
+		c.AutoGenerator.Middleware,
 	}
 	filesMap := make(map[string]bool)
 	pkgConfigsByDir := make(map[string]PackageConfig)
@@ -219,16 +223,6 @@ func (c *Config) Check() error {
 	}
 
 	return c.normalize()
-}
-
-func (c *Config) AutoResolverShortPackage() string {
-	res := ""
-	p := c.AutoGenerator.ResolverFuncBody.InvokePackage
-	if len(p) > 0 {
-		arr := strings.Split(p, "/")
-		res = arr[len(arr)-1]
-	}
-	return res
 }
 
 func stripPath(path string) string {
@@ -340,6 +334,12 @@ func (c *Config) normalize() error {
 	if c.Resolver.IsDefined() {
 		if err := c.Resolver.normalize(); err != nil {
 			return errors.Wrap(err, "resolver")
+		}
+	}
+
+	if c.AutoGenerator.Middleware.IsDefined() {
+		if err := c.AutoGenerator.Middleware.normalize(); err != nil {
+			return errors.Wrap(err, "middle")
 		}
 	}
 

@@ -1,4 +1,3 @@
-// THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 {{ reserveImport "context"  }}
 {{ reserveImport "fmt"  }}
@@ -32,11 +31,11 @@ type {{.ResolverType}} struct {}
 		{{ range $field := $object.Fields -}}
 			{{- if $field.IsResolver -}}
 			func (r *{{lcFirst $object.Name}}Resolver) {{$field.GoFieldName}}{{ $field.ShortResolverDeclaration }} {
-				{{- with $.Config.AutoResolverShortPackage -}}
-					return {{$.Config.AutoResolverShortPackage}}.{{$field.AutoResolverInvoke}}
+				{{- with $.Config.AutoGenerator.Middleware.Filename -}}
+					return {{$.Config.AutoGenerator.Middleware.Package}}.{{$field.AutoResolverInvoke}}
 				{{- else }}
-					{{- with $.Config.AutoGenerator.ResolverFuncBody.Expression}}
-						{{$.Config.AutoGenerator.ResolverFuncBody.Expression}}
+					{{- with $.Config.AutoGenerator.ResolverFuncExpression -}}
+						{{$.Config.AutoGenerator.ResolverFuncExpression}}
 					{{- else}}
 						panic("not implemented")
 					{{ end -}}

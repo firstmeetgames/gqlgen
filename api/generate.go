@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/99designs/gqlgen/plugin/middlegen"
 	"syscall"
 
 	"github.com/99designs/gqlgen/codegen"
@@ -19,6 +20,7 @@ func Generate(cfg *config.Config, option ...Option) error {
 	plugins := []plugin.Plugin{
 		modelgen.New(),
 		resolvergen.New(),
+		middlegen.New(),
 	}
 
 	for _, o := range option {

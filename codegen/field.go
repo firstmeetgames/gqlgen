@@ -75,21 +75,21 @@ func (b *builder) buildField(obj *Object, field *ast.FieldDefinition) (*Field, e
 }
 
 func (f *Field) isResolver(b *builder) (isResolver bool) {
-	if !b.Config.AutoGenerator.StructFieldsResolver {
+	if !b.Config.AutoGenerator.StructFieldsAutoResolver {
 		return
 	}
 	for _, model := range b.Config.Models[f.Type.Name()].Model {
 		pkgName, typeName := code.PkgAndType(model)
 		// exclude fields that the gqlgen automatically generates
-		/*if !strings.HasPrefix(pkgName, "github.com/99designs/gqlgen") {
+		if strings.HasPrefix(pkgName, "github.com/99designs/gqlgen") {
 			continue
-		}*/
+		}
 		if strings.HasPrefix(f.Name, "__") {
 			continue
 		}
 		def := b.Schema.Types[f.Type.Name()]
 		// exclude fields of input type
-		if def.Kind == ast.InputObject {
+		if def.Kind != ast.Object {
 			continue
 		}
 		o, err := b.Binder.FindObject(pkgName, typeName)
@@ -98,7 +98,7 @@ func (f *Field) isResolver(b *builder) (isResolver bool) {
 		}
 
 		if _, isStruct := o.Type().Underlying().(*types.Struct); isStruct {
-			fmt.Println(pkgName, typeName)
+			fmt.Println(pkgName, typeName,f.Name)
 			ref := &config.TypeReference{
 				Definition: def,
 				GQL:        f.Type,
@@ -396,14 +396,36 @@ func (f *Field) ShortResolverDeclaration() string {
 }
 
 func (f *Field) AutoResolverInvoke() string {
-	res := f.GoFieldName + "(ctx"
-	if !f.Object.Root {
-		res += ", obj "
+	var res string
+	if f.Object.Root {
+		res = f.GoFieldName + "(ctx"
+	} else {
+		res = f.GoFieldName + "Of" + f.Object.Definition.Name + "(ctx, obj"
 	}
 	for _, arg := range f.Args {
 		res += fmt.Sprintf(", %s", arg.VarName)
 	}
 	res += ")"
+	return res
+}
+
+func (f *Field) MiddleFuncDefine() string {
+	var res string
+	if f.Object.Root {
+		res = f.GoFieldName + "(ctx context.Context"
+	} else {
+		res = f.GoFieldName + "Of" + f.Object.Definition.Name + "(ctx context.Context" + fmt.Sprintf(", obj *%s", templates.CurrentImports.LookupType(f.Object.Type))
+	}
+	for _, arg := range f.Args {
+		res += fmt.Sprintf(", %s %s", arg.VarName, templates.CurrentImports.LookupType(arg.TypeReference.GO))
+	}
+
+	result := templates.CurrentImports.LookupType(f.TypeReference.GO)
+	if f.Object.Stream {
+		result = "<-chan " + result
+	}
+
+	res += fmt.Sprintf(") (%s, error)", result)
 	return res
 }
 
