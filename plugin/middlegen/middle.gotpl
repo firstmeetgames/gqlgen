@@ -21,7 +21,7 @@
 		{{ range $field := $object.Fields -}}
 			{{- if $field.IsResolver -}}
 			func {{$field.MiddleFuncDefine}} {
-				return nil,nil
+				return
 			}
 			{{ end -}}
 		{{ end -}}

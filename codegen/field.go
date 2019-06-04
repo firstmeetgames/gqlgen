@@ -425,7 +425,7 @@ func (f *Field) MiddleFuncDefine() string {
 		result = "<-chan " + result
 	}
 
-	res += fmt.Sprintf(") (%s, error)", result)
+	res += fmt.Sprintf(") (res %s, err error)", result)
 	return res
 }
 
