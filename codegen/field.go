@@ -81,10 +81,7 @@ func (f *Field) isAutoResolver(b *builder) (isResolver bool) {
 	for _, model := range b.Config.Models[f.Type.Name()].Model {
 		pkgName, typeName := code.PkgAndType(model)
 		// exclude fields that the gqlgen automatically generates
-		if strings.HasPrefix(pkgName, "github.com/99designs/gqlgen") {
-			continue
-		}
-		if strings.HasPrefix(f.Name, "__") {
+		if pkgName != b.Config.Model.ImportPath() {
 			continue
 		}
 		def := b.Schema.Types[f.Type.Name()]
@@ -98,7 +95,7 @@ func (f *Field) isAutoResolver(b *builder) (isResolver bool) {
 		}
 
 		if _, isStruct := o.Type().Underlying().(*types.Struct); isStruct {
-			fmt.Println(pkgName, typeName,f.Name)
+			fmt.Println(pkgName, typeName, f.Name)
 			ref := &config.TypeReference{
 				Definition: def,
 				GQL:        f.Type,
