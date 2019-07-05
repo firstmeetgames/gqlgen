@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"fmt"
+	"github.com/99designs/gqlgen/internal/code"
 	"go/types"
 	"log"
 	"reflect"
@@ -10,9 +11,15 @@ import (
 
 	"github.com/99designs/gqlgen/codegen/config"
 	"github.com/99designs/gqlgen/codegen/templates"
-	"github.com/99designs/gqlgen/internal/code"
 	"github.com/pkg/errors"
 	"github.com/vektah/gqlparser/ast"
+)
+
+const (
+	STRUCT_FIELD_RESOLVER_POLICY = "struct"
+	HAS_ARGS_RESOLVER_POLICY     = "args"
+	ALL_RESOLVER_POLICY          = "all"
+	DEFAULT_RESOLVER_POLICY      = ""
 )
 
 type Field struct {
@@ -74,9 +81,9 @@ func (b *builder) buildField(obj *Object, field *ast.FieldDefinition) (*Field, e
 	return &f, nil
 }
 
-func (f *Field) isAutoResolver(b *builder) (isResolver bool) {
-	if !b.Config.AutoResolver {
-		return
+func (f *Field) isResolver(b *builder) bool {
+	if b.Config.Models[f.Object.Name].Fields[f.Name].Resolver {
+		return true
 	}
 	for _, model := range b.Config.Models[f.Type.Name()].Model {
 		pkgName, typeName := code.PkgAndType(model)
@@ -84,29 +91,34 @@ func (f *Field) isAutoResolver(b *builder) (isResolver bool) {
 		if pkgName != b.Config.Model.ImportPath() {
 			continue
 		}
-		def := b.Schema.Types[f.Type.Name()]
-		// exclude fields of input type
-		if def.Kind != ast.Object {
-			continue
-		}
-		o, err := b.Binder.FindObject(pkgName, typeName)
-		if err != nil {
-			continue
-		}
-
-		if _, isStruct := o.Type().Underlying().(*types.Struct); isStruct {
-			fmt.Println(pkgName, typeName, f.Name)
-			ref := &config.TypeReference{
-				Definition: def,
-				GQL:        f.Type,
-				GO:         o.Type(),
+		switch b.Config.ResolverPolicy {
+		case DEFAULT_RESOLVER_POLICY:
+			return false
+		case ALL_RESOLVER_POLICY:
+			return true
+		case HAS_ARGS_RESOLVER_POLICY:
+			if len(f.Args) > 0 {
+				fmt.Println(f.Type, f.Name, f.GoFieldType, f.GoFieldName, f.MethodHasContext)
+				return true
 			}
-			f.TypeReference = ref
-			isResolver = true
-			return
+		case STRUCT_FIELD_RESOLVER_POLICY:
+			def := b.Schema.Types[f.Type.Name()]
+			// exclude fields of not object type
+			if def.Kind != ast.Object {
+				return false
+			}
+			o, err := b.Binder.FindObject(pkgName, typeName)
+			if err != nil {
+				continue
+			}
+
+			if _, isStruct := o.Type().Underlying().(*types.Struct); isStruct {
+				log.Println(pkgName, typeName, f.Name)
+				return true
+			}
 		}
 	}
-	return
+	return false
 }
 
 func (b *builder) bindField(obj *Object, f *Field) error {
@@ -134,10 +146,7 @@ func (b *builder) bindField(obj *Object, f *Field) error {
 	case obj.Root:
 		f.IsResolver = true
 		return nil
-	case b.Config.Models[obj.Name].Fields[f.Name].Resolver:
-		f.IsResolver = true
-		return nil
-	case f.isAutoResolver(b):
+	case f.isResolver(b):
 		f.IsResolver = true
 		return nil
 	case obj.Type == config.MapType:
@@ -373,12 +382,8 @@ func (f *Field) ResolverType() string {
 	return fmt.Sprintf("%s().%s(%s)", f.Object.Definition.Name, f.GoFieldName, f.CallArgs())
 }
 
-func (f *Field) ShortResolverDeclaration() string {
-	res := "(ctx context.Context"
-
-	if !f.Object.Root {
-		res += fmt.Sprintf(", obj *%s", templates.CurrentImports.LookupType(f.Object.Type))
-	}
+func (f *Field) SubInvoke(predefine bool) string {
+	var res string
 	for _, arg := range f.Args {
 		res += fmt.Sprintf(", %s %s", arg.VarName, templates.CurrentImports.LookupType(arg.TypeReference.GO))
 	}
@@ -387,8 +392,22 @@ func (f *Field) ShortResolverDeclaration() string {
 	if f.Object.Stream {
 		result = "<-chan " + result
 	}
+	if predefine {
+		res += fmt.Sprintf(") (res %s, err error)", result)
+	} else {
+		res += fmt.Sprintf(") (%s, error)", result)
+	}
 
-	res += fmt.Sprintf(") (%s, error)", result)
+	return res
+}
+
+func (f *Field) ShortResolverDeclaration() string {
+	res := "(ctx context.Context"
+
+	if !f.Object.Root {
+		res += fmt.Sprintf(", obj *%s", templates.CurrentImports.LookupType(f.Object.Type))
+	}
+	res += f.SubInvoke(false)
 	return res
 }
 
@@ -413,16 +432,8 @@ func (f *Field) MiddleFuncDefine() string {
 	} else {
 		res = f.GoFieldName + "Of" + f.Object.Definition.Name + "(ctx context.Context" + fmt.Sprintf(", obj *%s", templates.CurrentImports.LookupType(f.Object.Type))
 	}
-	for _, arg := range f.Args {
-		res += fmt.Sprintf(", %s %s", arg.VarName, templates.CurrentImports.LookupType(arg.TypeReference.GO))
-	}
 
-	result := templates.CurrentImports.LookupType(f.TypeReference.GO)
-	if f.Object.Stream {
-		result = "<-chan " + result
-	}
-
-	res += fmt.Sprintf(") (res %s, err error)", result)
+	res += f.SubInvoke(true)
 	return res
 }
 
