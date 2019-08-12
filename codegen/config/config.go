@@ -28,6 +28,8 @@ type Config struct {
 	Models         TypeMap                    `yaml:"models,omitempty"`
 	StructTag      string                     `yaml:"struct_tag,omitempty"`
 	Directives     map[string]DirectiveConfig `yaml:"directives,omitempty"`
+	Middleware     PackageConfig `yaml:"middle,omitempty"`
+	ResolverPolicy   string          `yaml:"policy,omitempty"`
 }
 
 var cfgFilenames = []string{".gqlgen.yml", "gqlgen.yml", "gqlgen.yaml"}

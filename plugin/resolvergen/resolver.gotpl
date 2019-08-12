@@ -20,7 +20,11 @@ type {{.ResolverType}} struct {}
 {{ range $object := .Objects -}}
 	{{- if $object.HasResolvers -}}
 		func (r *{{$.ResolverType}}) {{$object.Name}}() {{ $object.ResolverInterface | ref }} {
-			return &{{lcFirst $object.Name}}{{ucFirst $.ResolverType}}{r}
+			{{- with $.Config.Middleware.Filename -}}
+				return {{$.Config.Middleware.Package}}.{{$field.AutoResolverInvoke}}
+			{{- else }}
+				panic("not implemented")
+			{{ end -}}
 		}
 	{{ end -}}
 {{ end }}
