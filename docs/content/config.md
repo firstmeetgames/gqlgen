@@ -17,11 +17,15 @@ schema: schema.graphql
 schema:
  - schema.graphql
  - user.graphql
- 
+
 # Or you can use globs
-schema: 
+schema:
  - "*.graphql"
- 
+
+# Or globs from a root directory
+schema:
+ - "schema/**/*.graphql"
+
 # Let gqlgen know where to put the generated server
 exec:
   filename: graph/generated/generated.go
@@ -39,6 +43,11 @@ resolver:
 
 # Optional, turns on binding to field names by tag provided
 struct_tag: json
+
+# Instead of listing out every model like below, you can automatically bind to any matching types
+# within the given path. EXPERIMENTAL in v0.9.1
+autobind:
+ - github.com/my/app/models
 
 # Tell gqlgen about any existing models you want to reuse for
 # graphql. These normally come from the db or a remote api.
@@ -62,3 +71,33 @@ models:
 
 Everything has defaults, so add things as you need.
 
+## Inline config with directives
+
+gqlgen ships with some builtin directives that make it a little easier to manage wiring.
+
+To start using them you first need to define them:
+```graphql
+directive @goModel(model: String, models: [String!]) on OBJECT 
+    | INPUT_OBJECT 
+    | SCALAR 
+    | ENUM 
+    | INTERFACE 
+    | UNION
+
+directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION 
+    | FIELD_DEFINITION
+```
+  
+> Here be dragons
+>
+> gqlgen doesnt currently support user-configurable directives for SCALAR, ENUM, INTERFACE or UNION. This only works
+> for internal directives. You can track the progress [here](https://github.com/99designs/gqlgen/issues/760)
+
+Now you can use these directives when defining types in your schema:
+
+```graphql
+type User @goModel(model:"github.com/my/app/models.User") {
+  id:   ID!	    @goField(name:"todoId")
+  name: String! @goField(forceResolver: true)
+}
+```

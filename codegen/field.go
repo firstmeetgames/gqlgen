@@ -332,7 +332,28 @@ func (b *builder) findBindStructTarget(strukt *types.Struct, name string) (types
 }
 
 func (f *Field) HasDirectives() bool {
-	return len(f.Directives) > 0
+	return len(f.ImplDirectives()) > 0
+}
+
+func (f *Field) DirectiveObjName() string {
+	if f.Object.Root {
+		return "nil"
+	}
+	return f.GoReceiverName
+}
+
+func (f *Field) ImplDirectives() []*Directive {
+	var d []*Directive
+	loc := ast.LocationFieldDefinition
+	if f.Object.IsInputType() {
+		loc = ast.LocationInputFieldDefinition
+	}
+	for i := range f.Directives {
+		if !f.Directives[i].Builtin && f.Directives[i].IsLocation(loc) {
+			d = append(d, f.Directives[i])
+		}
+	}
+	return d
 }
 
 func (f *Field) IsReserved() bool {
@@ -447,16 +468,16 @@ func (f *Field) ComplexitySignature() string {
 }
 
 func (f *Field) ComplexityArgs() string {
-	var args []string
-	for _, arg := range f.Args {
-		args = append(args, "args["+strconv.Quote(arg.Name)+"].("+templates.CurrentImports.LookupType(arg.TypeReference.GO)+")")
+	args := make([]string, len(f.Args))
+	for i, arg := range f.Args {
+		args[i] = "args[" + strconv.Quote(arg.Name) + "].(" + templates.CurrentImports.LookupType(arg.TypeReference.GO) + ")"
 	}
 
 	return strings.Join(args, ", ")
 }
 
 func (f *Field) CallArgs() string {
-	var args []string
+	args := make([]string, 0, len(f.Args)+2)
 
 	if f.IsResolver {
 		args = append(args, "rctx")
@@ -464,10 +485,8 @@ func (f *Field) CallArgs() string {
 		if !f.Object.Root {
 			args = append(args, "obj")
 		}
-	} else {
-		if f.MethodHasContext {
-			args = append(args, "ctx")
-		}
+	} else if f.MethodHasContext {
+		args = append(args, "ctx")
 	}
 
 	for _, arg := range f.Args {

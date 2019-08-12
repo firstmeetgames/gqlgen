@@ -13,6 +13,7 @@ const (
 	connectionInitMsg = "connection_init" // Client -> Server
 	startMsg          = "start"           // Client -> Server
 	connectionAckMsg  = "connection_ack"  // Server -> Client
+	connectionKa      = "ka"              // Server -> Client
 	dataMsg           = "data"            // Server -> Client
 	errorMsg          = "error"           // Server -> Client
 )
@@ -51,7 +52,7 @@ func (p *Client) WebsocketWithPayload(query string, initPayload map[string]inter
 	url := strings.Replace(p.url, "http://", "ws://", -1)
 	url = strings.Replace(url, "https://", "wss://", -1)
 
-	c, _, err := websocket.DefaultDialer.Dial(url, nil)
+	c, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return errorSubscription(fmt.Errorf("dial: %s", err.Error()))
 	}
@@ -72,8 +73,18 @@ func (p *Client) WebsocketWithPayload(query string, initPayload map[string]inter
 	if err = c.ReadJSON(&ack); err != nil {
 		return errorSubscription(fmt.Errorf("ack: %s", err.Error()))
 	}
+
 	if ack.Type != connectionAckMsg {
 		return errorSubscription(fmt.Errorf("expected ack message, got %#v", ack))
+	}
+
+	var ka operationMessage
+	if err = c.ReadJSON(&ka); err != nil {
+		return errorSubscription(fmt.Errorf("ka: %s", err.Error()))
+	}
+
+	if ka.Type != connectionKa {
+		return errorSubscription(fmt.Errorf("expected ka message, got %#v", ack))
 	}
 
 	if err = c.WriteJSON(operationMessage{Type: startMsg, ID: "1", Payload: requestBody}); err != nil {
@@ -81,7 +92,11 @@ func (p *Client) WebsocketWithPayload(query string, initPayload map[string]inter
 	}
 
 	return &Subscription{
-		Close: c.Close,
+		Close: func() error {
+			c.Close()
+			resp.Body.Close()
+			return nil
+		},
 		Next: func(response interface{}) error {
 			var op operationMessage
 			err := c.ReadJSON(&op)

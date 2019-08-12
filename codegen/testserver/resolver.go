@@ -4,7 +4,7 @@ import (
 	"context"
 
 	introspection1 "github.com/99designs/gqlgen/codegen/testserver/introspection"
-	"github.com/99designs/gqlgen/codegen/testserver/invalid-packagename"
+	invalid_packagename "github.com/99designs/gqlgen/codegen/testserver/invalid-packagename"
 )
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
@@ -134,21 +134,6 @@ func (r *queryResolver) User(ctx context.Context, id int) (*User, error) {
 func (r *queryResolver) NullableArg(ctx context.Context, arg *int) (*string, error) {
 	panic("not implemented")
 }
-func (r *queryResolver) DirectiveArg(ctx context.Context, arg string) (*string, error) {
-	panic("not implemented")
-}
-func (r *queryResolver) DirectiveNullableArg(ctx context.Context, arg *int, arg2 *int) (*string, error) {
-	panic("not implemented")
-}
-func (r *queryResolver) DirectiveInputNullable(ctx context.Context, arg *InputDirectives) (*string, error) {
-	panic("not implemented")
-}
-func (r *queryResolver) DirectiveInput(ctx context.Context, arg InputDirectives) (*string, error) {
-	panic("not implemented")
-}
-func (r *queryResolver) DirectiveInputType(ctx context.Context, arg InnerInput) (*string, error) {
-	panic("not implemented")
-}
 func (r *queryResolver) InputSlice(ctx context.Context, arg []string) (bool, error) {
 	panic("not implemented")
 }
@@ -162,6 +147,30 @@ func (r *queryResolver) DeprecatedField(ctx context.Context) (string, error) {
 	panic("not implemented")
 }
 func (r *queryResolver) Overlapping(ctx context.Context) (*OverlappingFields, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveArg(ctx context.Context, arg string) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveNullableArg(ctx context.Context, arg *int, arg2 *int, arg3 *string) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveInputNullable(ctx context.Context, arg *InputDirectives) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveInput(ctx context.Context, arg InputDirectives) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveInputType(ctx context.Context, arg InnerInput) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveObject(ctx context.Context) (*ObjectDirectives, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveFieldDef(ctx context.Context, ret string) (string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveField(ctx context.Context) (*string, error) {
 	panic("not implemented")
 }
 func (r *queryResolver) MapStringInterface(ctx context.Context, in map[string]interface{}) (map[string]interface{}, error) {
@@ -201,6 +210,12 @@ func (r *queryResolver) OptionalUnion(ctx context.Context) (TestUnion, error) {
 	panic("not implemented")
 }
 func (r *queryResolver) ValidType(ctx context.Context) (*ValidType, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) WrappedStruct(ctx context.Context) (*WrappedStruct, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) WrappedScalar(ctx context.Context) (WrappedScalar, error) {
 	panic("not implemented")
 }
 

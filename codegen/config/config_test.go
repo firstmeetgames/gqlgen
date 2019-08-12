@@ -3,7 +3,11 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+
+	"github.com/vektah/gqlparser"
+	"github.com/vektah/gqlparser/ast"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +27,28 @@ func TestLoadConfig(t *testing.T) {
 	t.Run("unknown keys", func(t *testing.T) {
 		_, err := LoadConfig("testdata/cfg/unknownkeys.yml")
 		require.EqualError(t, err, "unable to parse config: yaml: unmarshal errors:\n  line 2: field unknown not found in type config.Config")
+	})
+
+	t.Run("globbed filenames", func(t *testing.T) {
+		c, err := LoadConfig("testdata/cfg/glob.yml")
+		require.NoError(t, err)
+
+		if runtime.GOOS == "windows" {
+			require.Equal(t, c.SchemaFilename[0], `testdata\cfg\glob\bar\bar with spaces.graphql`)
+			require.Equal(t, c.SchemaFilename[1], `testdata\cfg\glob\foo\foo.graphql`)
+		} else {
+			require.Equal(t, c.SchemaFilename[0], "testdata/cfg/glob/bar/bar with spaces.graphql")
+			require.Equal(t, c.SchemaFilename[1], "testdata/cfg/glob/foo/foo.graphql")
+		}
+	})
+
+	t.Run("unwalkable path", func(t *testing.T) {
+		_, err := LoadConfig("testdata/cfg/unwalkable.yml")
+		if runtime.GOOS == "windows" {
+			require.EqualError(t, err, "failed to walk schema at root not_walkable/: FindFirstFile not_walkable/: The parameter is incorrect.")
+		} else {
+			require.EqualError(t, err, "failed to walk schema at root not_walkable/: lstat not_walkable/: no such file or directory")
+		}
 	})
 }
 
@@ -90,4 +116,24 @@ func TestConfigCheck(t *testing.T) {
 		err = config.Check()
 		require.EqualError(t, err, "filenames exec.go and models.go are in the same directory but have different package definitions")
 	})
+}
+
+func TestAutobinding(t *testing.T) {
+	cfg := Config{
+		Models: TypeMap{},
+		AutoBind: []string{
+			"github.com/99designs/gqlgen/example/chat",
+			"github.com/99designs/gqlgen/example/scalars/model",
+		},
+	}
+
+	s := gqlparser.MustLoadSchema(&ast.Source{Name: "TestAutobinding.schema", Input: `
+		scalar Banned 
+		type Message { id: ID }
+	`})
+
+	require.NoError(t, cfg.Autobind(s))
+
+	require.Equal(t, "github.com/99designs/gqlgen/example/scalars/model.Banned", cfg.Models["Banned"].Model[0])
+	require.Equal(t, "github.com/99designs/gqlgen/example/chat.Message", cfg.Models["Message"].Model[0])
 }
