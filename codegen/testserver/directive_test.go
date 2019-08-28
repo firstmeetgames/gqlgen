@@ -47,12 +47,29 @@ func TestDirectives(t *testing.T) {
 		}, nil
 	}
 
+	resolvers.QueryResolver.DirectiveObjectWithCustomGoModel = func(ctx context.Context) (*ObjectDirectivesWithCustomGoModel, error) {
+		s := "Ok"
+		return &ObjectDirectivesWithCustomGoModel{
+			NullableText: s,
+		}, nil
+	}
+
 	resolvers.QueryResolver.DirectiveField = func(ctx context.Context) (*string, error) {
 		if s, ok := ctx.Value("request_id").(*string); ok {
 			return s, nil
 		}
 
 		return nil, nil
+	}
+
+	resolvers.QueryResolver.DirectiveDouble = func(ctx context.Context) (*string, error) {
+		s := "Ok"
+		return &s, nil
+	}
+
+	resolvers.QueryResolver.DirectiveUnimplemented = func(ctx context.Context) (*string, error) {
+		s := "Ok"
+		return &s, nil
 	}
 
 	srv := httptest.NewServer(
@@ -126,6 +143,13 @@ func TestDirectives(t *testing.T) {
 					ToNull: func(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
 						return nil, nil
 					},
+					Directive1: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
+						return next(ctx)
+					},
+					Directive2: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
+						return next(ctx)
+					},
+					Unimplemented: nil,
 				},
 			}),
 			handler.ResolverMiddleware(func(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
@@ -204,6 +228,26 @@ func TestDirectives(t *testing.T) {
 			err := c.Post(`query { directiveFieldDef(ret: "") }`, &resp)
 
 			require.EqualError(t, err, `[{"message":"not valid","path":["directiveFieldDef"]}]`)
+		})
+
+		t.Run("has 2 directives", func(t *testing.T) {
+			var resp struct {
+				DirectiveDouble string
+			}
+
+			c.MustPost(`query { directiveDouble }`, &resp)
+
+			require.Equal(t, "Ok", resp.DirectiveDouble)
+		})
+
+		t.Run("directive is not implemented", func(t *testing.T) {
+			var resp struct {
+				DirectiveUnimplemented string
+			}
+
+			err := c.Post(`query { directiveUnimplemented }`, &resp)
+
+			require.EqualError(t, err, `[{"message":"directive unimplemented is not implemented","path":["directiveUnimplemented"]}]`)
 		})
 
 		t.Run("ok", func(t *testing.T) {
@@ -312,6 +356,18 @@ func TestDirectives(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, "Ok", resp.DirectiveObject.Text)
 			require.True(t, resp.DirectiveObject.NullableText == nil)
+		})
+		t.Run("when directive returns nil & custom go field is not nilable", func(t *testing.T) {
+			var resp struct {
+				DirectiveObjectWithCustomGoModel *struct {
+					NullableText *string
+				}
+			}
+
+			err := c.Post(`query { directiveObjectWithCustomGoModel{ nullableText } }`, &resp)
+
+			require.Nil(t, err)
+			require.True(t, resp.DirectiveObjectWithCustomGoModel.NullableText == nil)
 		})
 	})
 }

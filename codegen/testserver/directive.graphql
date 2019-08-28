@@ -3,6 +3,9 @@ directive @range(min: Int = 0, max: Int) on ARGUMENT_DEFINITION
 directive @custom on ARGUMENT_DEFINITION
 directive @logged(id: UUID!) on FIELD
 directive @toNull on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | FIELD_DEFINITION
+directive @directive1 on FIELD_DEFINITION
+directive @directive2 on FIELD_DEFINITION
+directive @unimplemented on FIELD_DEFINITION
 
 extend type Query {
     directiveArg(arg: String! @length(min:1, max: 255, message: "invalid length")): String
@@ -11,8 +14,11 @@ extend type Query {
     directiveInput(arg: InputDirectives!): String
     directiveInputType(arg: InnerInput! @custom): String
     directiveObject: ObjectDirectives
+    directiveObjectWithCustomGoModel: ObjectDirectivesWithCustomGoModel
     directiveFieldDef(ret: String!): String! @length(min: 1, message: "not valid")
     directiveField: String
+    directiveDouble: String @directive1 @directive2
+    directiveUnimplemented: String @unimplemented
 }
 
 input InputDirectives {
@@ -29,5 +35,9 @@ input InnerDirectives {
 
 type ObjectDirectives {
     text: String! @length(min: 0, max: 7, message: "not valid")
+    nullableText: String @toNull
+}
+
+type ObjectDirectivesWithCustomGoModel {
     nullableText: String @toNull
 }

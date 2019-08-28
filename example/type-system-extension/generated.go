@@ -707,11 +707,18 @@ func (ec *executionContext) _Todo_verified(ctx context.Context, field graphql.Co
 			return obj.Verified, nil
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.FieldLogging == nil {
+				return nil, errors.New("directive fieldLogging is not implemented")
+			}
 			return ec.directives.FieldLogging(ctx, obj, directive0)
 		}
+
 		tmp, err := directive1(rctx)
 		if err != nil {
 			return nil, err
+		}
+		if tmp == nil {
+			return nil, nil
 		}
 		if data, ok := tmp.(bool); ok {
 			return data, nil

@@ -167,10 +167,19 @@ func (r *queryResolver) DirectiveInputType(ctx context.Context, arg InnerInput) 
 func (r *queryResolver) DirectiveObject(ctx context.Context) (*ObjectDirectives, error) {
 	panic("not implemented")
 }
+func (r *queryResolver) DirectiveObjectWithCustomGoModel(ctx context.Context) (*ObjectDirectivesWithCustomGoModel, error) {
+	panic("not implemented")
+}
 func (r *queryResolver) DirectiveFieldDef(ctx context.Context, ret string) (string, error) {
 	panic("not implemented")
 }
 func (r *queryResolver) DirectiveField(ctx context.Context) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveDouble(ctx context.Context) (*string, error) {
+	panic("not implemented")
+}
+func (r *queryResolver) DirectiveUnimplemented(ctx context.Context) (*string, error) {
 	panic("not implemented")
 }
 func (r *queryResolver) MapStringInterface(ctx context.Context, in map[string]interface{}) (map[string]interface{}, error) {
